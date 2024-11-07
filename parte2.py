@@ -6,26 +6,28 @@ from abc import abstractmethod
 class Estado: 
     pass
 
-class Accao:
+class Acao:
     pass
 
 class Aprendizagem:
 
     @abstractmethod
-    def selecionar_accao(self, s: Estado) -> Accao:
+    def selecionar_acao(self, s: Estado) -> Acao:
         pass
 
     @abstractmethod
-    def aprender(self, s: Estado, a: Accao, r:float, sn:Estado,an:Accao):
+    def aprender(self, s: Estado, a: Acao, r:float, sn:Estado,an:Acao):
         pass
 
 
 class MemoriaAprend:
 
-    def actualizar(s: Estado, a: Accao, q:float):
+    @abstractmethod
+    def actualizar(s: Estado, a: Acao, q:float):
         pass
 
-    def Q(self, s: Estado, a: Accao) -> float:
+    @abstractmethod
+    def Q(self, s: Estado, a: Acao) -> float:
         pass    
 
 class MemoriaEsparsa(MemoriaAprend):
@@ -35,65 +37,65 @@ class MemoriaEsparsa(MemoriaAprend):
         self.valor_omissao = valor_omissao
         self.memoria = {}
 
-    def Q(self, s: Estado, a: Accao):
+    def Q(self, s: Estado, a: Acao):
 
         return self.memoria.get((s, a), self.valor_omissao)    
 
-    def atualizar(self, s: Estado, a: Accao, q: float):
+    def atualizar(self, s: Estado, a: Acao, q: float):
         self.memoria[(s, a)] = q
 
 
-class SelAccao:
+class SelAcao:
 
     def __init__(self, mem_aprend: MemoriaAprend):
         self.mem_aprend = mem_aprend
 
-    def seleccionar_accao(self, s: Estado) -> Accao: 
+    def seleccionar_acao(self, s: Estado) -> Acao: 
         pass
 
-    def max_accao(self, s: Estado) -> Accao:
+    def max_acao(self, s: Estado) -> Acao:
         pass
 
 
-class Egreedy (SelAccao):
+class Egreedy (SelAcao):
 
-    def __init__(self, mem_aprend, accoes, epsilon):
+    def __init__(self, mem_aprend, acoes, epsilon):
 
         self.mem_aprend = mem_aprend
-        self.accoes = accoes
+        self.acoes = acoes
         self.epsilion = epsilon
 
-    def max_accao(self, s):
-        random.shuffle(self.accoes)
-        return np.argmax(self.accoes, lambda a : self.mem_aprend.Q(s, a))
+    def max_acao(self, s):
+        random.shuffle(self.acoes)
+        return np.argmax(self.acoes, lambda a : self.mem_aprend.Q(s, a))
         
     def aproveitar(self, s):
-        return self.max_accao(s)
+        return self.max_acao(s)
     
     def explorar(self):
-        return random.choice(self.accoes)
+        return random.choice(self.acoes)
     
-    def selecionar_accao(self, s):
+    def selecionar_acao(self, s):
         if random.random() > self.epsilon:
-            accao = self.aproveitar(s)
+            acao = self.aproveitar(s)
         else:
-            accao = self.explorar()
+            acao = self.explorar()
 
-        return accao       
+        return acao       
 
 
 
 class AprendRef:
 
-    def __init__(self, mem_aprend: MemoriaAprend, sel_accao: SelAccao, alfa: float, gama: float):
+    def __init__(self, mem_aprend: MemoriaAprend, sel_acao: SelAcao, alfa: float, gama: float):
     
         self.mem_aprend = mem_aprend
-        self.sel_accao = sel_accao
+        self.sel_acao = sel_acao
         self.alfa = alfa
         self.gama = gama
 
     @abstractmethod
-    def aprender(s: Estado, a: Accao, r:float, sn: Estado, an = None):
+    def aprender(s: Estado, a: Acao, r:float, sn: Estado, an = None):
         pass
 
 
@@ -108,7 +110,7 @@ class SARSA(AprendRef):
 
 class QLearning(AprendRef):
     def aprender(self, s, a, r, sn):
-        an = self.sel_accao.max_accao(sn)
+        an = self.sel_acao.max_acao(sn)
         qsa = self.mem_aprend.Q(s,a)
         qsnan = self.mem_aprend.Q(sn, an)
         q = qsa + self.alfa * (r + self.gama * qsnan - qsa )
@@ -118,8 +120,8 @@ class QLearning(AprendRef):
 
 
 class DynaQ(QLearning):
-    def __init__(self,mem_aprend, sel_accao, alfa,gama, num_sim):
-        super().__init__(mem_aprend, sel_accao, alfa, gama)
+    def __init__(self,mem_aprend, sel_acao, alfa,gama, num_sim):
+        super().__init__(mem_aprend, sel_acao, alfa, gama)
         self.num_sim = num_sim
         self.modelo = ModeloTR() 
 
@@ -150,11 +152,11 @@ class ModeloTR:
         r = self.R[(s, a)]
         return s, a, r, sn
 
-
+'''
 class QME(QLearning):
 
-    def __init__(self, mem_aprend: MemoriaAprend, sel_accao: SelAccao, alfa: float, gama: float, num_sim, dim_max):
-        super().__init__(mem_aprend, sel_accao, alfa, gama)
+    def __init__(self, mem_aprend: MemoriaAprend, sel_acao: Selacao, alfa: float, gama: float, num_sim, dim_max):
+        super().__init__(mem_aprend, sel_acao, alfa, gama)
         self.num_sim = num_sim
         self.memoria_experiencia = MemoriaExperiencia(dim_max)
 
@@ -185,26 +187,24 @@ class MemoriaExperiencia:
         n_amostras = min(n, self.memoria.dim())
         return random.sample(self.memoria, n_amostras)        
 
-
+'''
 
 
 class MecAprendRef:
 
-    def __init__(self, accoes : Accao): #list[Accao]?
-        self.accoes = accoes
+    def __init__(self, acoes : Acao): #list[acao]?
 
-    def aprender(s: Estado, a: Accao, r: float, sn: Estado, an):
-        pass
+        self.acoes = acoes
+        self.memoria_aprend = MemoriaAprend()
+        self.sel_acao = SelAcao(self.memoria_aprend)
+        self.apren_ref = AprendRef(self.memoria_aprend, self.sel_acao, alfa, gama)
 
-    def selecionar_accao(self, s: Estado ) -> Accao:
-        pass
+    def aprender(self, s: Estado, a: Acao, r: float, sn: Estado, an: Acao = None):
 
+        self.apren_ref.aprender(s, a, r, sn, an)
 
+       
+    def selecionar_acao(self, s: Estado ) -> Acao:
 
+        self.sel_acao.seleccionar_acao(s)
         
-    
-
-        
-
-
-
